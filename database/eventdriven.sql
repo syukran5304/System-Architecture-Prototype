@@ -1,0 +1,54 @@
+CREATE DATABASE IF NOT EXISTS recruitment_db;
+USE recruitment_db;
+
+-- 1. Users Table
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('CANDIDATE', 'RECRUITER') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Jobs Table
+CREATE TABLE jobs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    recruiter_id BIGINT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    required_skills TEXT NOT NULL,
+    salary_range VARCHAR(50),
+    location VARCHAR(100),
+    status ENUM('PUBLISHED', 'CLOSED') DEFAULT 'PUBLISHED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (recruiter_id) REFERENCES users(id) ON DELETE CASCADE,
+    FULLTEXT KEY fx_job_search (title, description, required_skills)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. Applications Table
+CREATE TABLE applications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    job_id BIGINT NOT NULL,
+    candidate_id BIGINT NOT NULL,
+    resume_path VARCHAR(512) NOT NULL,
+    status ENUM('SUBMITTED', 'SHORTLISTED', 'REJECTED', 'INTERVIEW_SCHEDULED') DEFAULT 'SUBMITTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_job_candidate (job_id, candidate_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Event Log Table
+CREATE TABLE event_log (
+    event_id VARCHAR(36) PRIMARY KEY,
+    event_type VARCHAR(100) NOT NULL,
+    payload LONGTEXT NOT NULL,
+    retry_count INT DEFAULT 0,
+    state ENUM('PENDING', 'PROCESSED', 'FAILED') DEFAULT 'PENDING',
+    exception_context TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
